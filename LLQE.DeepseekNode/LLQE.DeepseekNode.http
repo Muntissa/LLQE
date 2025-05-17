@@ -1,0 +1,6 @@
+@LLQE.DeepseekNode_HostAddress = http://localhost:5279
+
+GET {{LLQE.DeepseekNode_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
