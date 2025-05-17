@@ -13,10 +13,10 @@ namespace LLQE.Common.Services
         private readonly string _apiToken;
         private readonly ILogger<RequestAIService> _logger;
 
-        public RequestAIService(HttpClient httpClient, IConfiguration configuration, ILogger<RequestAIService> logger)
+        public RequestAIService(HttpClient httpClient, ILogger<RequestAIService> logger)
         {
             _httpClient = httpClient;
-            _apiToken = configuration["AI:ApiToken"];
+            _apiToken = Environment.GetEnvironmentVariable("BothubToken");
             _logger = logger;
         }
 

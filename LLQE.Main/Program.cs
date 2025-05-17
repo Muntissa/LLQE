@@ -7,7 +7,7 @@ using (var p = new ProducerBuilder<Null, string>(config).Build())
 {
     try
     {
-        var dr = await p.ProduceAsync("DeepseekPrompts", new Message<Null, string> { Value = $"Привет" });
+        var dr = await p.ProduceAsync("DeepseekPrompts", new Message<Null, string> { Value = Console.ReadLine() });
         Console.WriteLine($"Delivered '{dr.Value}' to '{dr.TopicPartitionOffset}'");
     }
     catch (ProduceException<Null, string> e)
