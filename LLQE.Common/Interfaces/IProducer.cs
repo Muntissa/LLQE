@@ -2,6 +2,6 @@
 {
     public interface IProducer
     {
-        public Task ProduceMessage(string topicName, string prompt);
+        Task ProduceAsync(string topic, string message, CancellationToken cancellationToken = default);
     }
 }

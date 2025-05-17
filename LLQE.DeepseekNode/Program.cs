@@ -1,28 +1,14 @@
+using LLQE.Common.Interfaces;
+using LLQE.Common.Services;
 using LLQE.DeepseekNode.Daemons;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
-//builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-/*builder.Services.AddOpenApi();*/
+builder.Services.AddHttpClient<IRequestAI, RequestAIService>();
 
 builder.Services.AddHostedService(provider => new DeepseekTopicConsumer("DeepseekPrompts", "Deepseek",
-    provider.GetRequiredService<ILogger<DeepseekTopicConsumer>>()));
+    provider.GetRequiredService<ILogger<DeepseekTopicConsumer>>(), 
+    provider.GetRequiredService<IRequestAI>()));
 
 var app = builder.Build();
-
-/*// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();*/
-
 app.Run();

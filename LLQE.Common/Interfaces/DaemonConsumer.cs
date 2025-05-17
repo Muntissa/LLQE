@@ -10,12 +10,14 @@ namespace LLQE.Common.Interfaces
         private readonly string _nodeName;
         private readonly ConsumerConfig _consumerConfig;
         public readonly ILogger<DaemonConsumer> _logger;
+        public readonly IRequestAI _requestAI;
 
-        public DaemonConsumer(string topicName, string nodeName, ILogger<DaemonConsumer> logger)
+        public DaemonConsumer(string topicName, string nodeName, ILogger<DaemonConsumer> logger, IRequestAI requestAI)
         {
             _topicName = topicName;
             _logger = logger;
             _nodeName = nodeName;
+            _requestAI = requestAI;
 
             _consumerConfig = new ConsumerConfig
             {
@@ -24,6 +26,7 @@ namespace LLQE.Common.Interfaces
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false
             };
+            _requestAI = requestAI;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -45,7 +48,7 @@ namespace LLQE.Common.Interfaces
                                 var consumeResult = consumer.Consume(stoppingToken);
                                 _logger.LogInformation($"Получено сообщение: '{consumeResult.Message.Value}' на топике {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}");
 
-                                HandleMessage(consumeResult.Message.Value);
+                                HandleMessage(consumeResult.Message.Value, stoppingToken);
 
                                 consumer.Commit(consumeResult);
                             }
@@ -64,7 +67,7 @@ namespace LLQE.Common.Interfaces
             }, stoppingToken);
         }
 
-        public virtual void HandleMessage(string message) =>  _logger.LogInformation($"Обработка сообщения: {message}");
+        public virtual async Task HandleMessage(string message, CancellationToken cancellationToken) =>  _logger.LogInformation($"Обработка сообщения: {message}");
         
     }
 }
