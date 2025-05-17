@@ -1,28 +1,32 @@
 ﻿using Confluent.Kafka;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace LLQE.Common.Interfaces
 {
-    public abstract class DaemonConsumer : BackgroundService
+    public abstract class ConsumerDaemon : BackgroundService
     {
+        public readonly ILogger<ConsumerDaemon> _logger;
+        public readonly IRequestAI _requestAI;
+        public readonly string _model;
+
         private readonly string _topicName;
         private readonly string _nodeName;
         private readonly ConsumerConfig _consumerConfig;
-        public readonly ILogger<DaemonConsumer> _logger;
-        public readonly IRequestAI _requestAI;
 
-        public DaemonConsumer(string topicName, string nodeName, ILogger<DaemonConsumer> logger, IRequestAI requestAI)
+        public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger, IRequestAI requestAI)
         {
-            _topicName = topicName;
+            _topicName = configuration["Kafka:ReceiveTopic"];
+            _nodeName = configuration["Kafka:CallbackTopic"];
+            _model = configuration["ApiSettings:Model"];
             _logger = logger;
-            _nodeName = nodeName;
             _requestAI = requestAI;
 
             _consumerConfig = new ConsumerConfig
             {
                 GroupId = "test-consumer-group",
-                BootstrapServers = "localhost:9092",
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false
             };
@@ -61,7 +65,7 @@ namespace LLQE.Common.Interfaces
                     catch (OperationCanceledException)
                     {
                         consumer.Close();
-                        _logger.LogInformation($"Kafka {_nodeName} consumer закрыт.");
+                        _logger.LogInformation($"Kafka {_nodeName} consumer сервис закрыт.");
                     }
                 }
             }, stoppingToken);

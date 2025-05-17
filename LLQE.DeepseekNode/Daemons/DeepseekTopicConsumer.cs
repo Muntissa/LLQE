@@ -3,15 +3,16 @@ using System.Threading;
 
 namespace LLQE.DeepseekNode.Daemons
 {
-    public class DeepseekTopicConsumer : DaemonConsumer
+    public class DeepseekTopicConsumer : ConsumerDaemon
     {
-        public DeepseekTopicConsumer(string topicName, string nodeName, ILogger<DeepseekTopicConsumer> logger, IRequestAI requestAI) : base(topicName, nodeName, logger, requestAI) { }
+        public DeepseekTopicConsumer(IConfiguration confguration, ILogger<DeepseekTopicConsumer> logger, IRequestAI requestAI) : base(confguration, logger, requestAI) { }
 
         public override async Task HandleMessage(string message, CancellationToken token)
         {
-            var model = "deepseek-chat";
             _logger.LogInformation($"Обработка сообщения: {message}");
-            var response = await _requestAI.SendRequestAsync(model, message, token);
+
+            var response = await _requestAI.SendRequestAsync(_model, message, token);
+
             _logger.LogInformation($"AI Response: {response}");
 
         }

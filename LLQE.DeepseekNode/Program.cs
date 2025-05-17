@@ -6,7 +6,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpClient<IRequestAI, RequestAIService>();
 
-builder.Services.AddHostedService(provider => new DeepseekTopicConsumer("DeepseekPrompts", "Deepseek",
+builder.Services.AddHostedService(provider => new DeepseekTopicConsumer(
+    provider.GetRequiredService<IConfiguration>(),
     provider.GetRequiredService<ILogger<DeepseekTopicConsumer>>(), 
     provider.GetRequiredService<IRequestAI>()));
 
