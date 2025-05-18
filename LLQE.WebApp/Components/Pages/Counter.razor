@@ -1,19 +1,72 @@
 ﻿@page "/counter"
+@using LLQE.Common.Interfaces
+@using System.ComponentModel
 @rendermode InteractiveServer
+@inject IServiceProvider sp
+@inject LLQE.Common.Services.NodeMessagesStore NodeMessagesStore
 
 <PageTitle>Counter</PageTitle>
 
-<h1>Counter</h1>
+<h3>Отправить сообщение в Kafka</h3>
 
-<p role="status">Current count: @currentCount</p>
+<input @bind="Message" placeholder="Введите сообщение" class="form-control" />
+<button @onclick="SendMessage" class="btn btn-primary mt-2">Отправить</button>
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+@if (Status != null)
+{
+    <div class="alert alert-info mt-2">@Status</div>
+}
+<h3>Ответы от узлов</h3>
+
+@foreach (var node in NodeNames)
+{
+    <div>
+        <p><b>@node:</b></p>
+        <textarea readonly class="form-control" rows="4">@GetMessage(node)</textarea>
+    </div>
+}
 
 @code {
-    private int currentCount = 0;
+    private string Message { get; set; }
+    private string Status { get; set; }
 
-    private void IncrementCount()
+    private string[] NodeNames = new[] { "DeepseekNode", "AnotherNode" };
+    protected override void OnInitialized()
     {
-        currentCount++;
+        NodeMessagesStore.PropertyChanged += OnNodeMessageChanged;
+    }
+
+    private void OnNodeMessageChanged(object sender, PropertyChangedEventArgs e)
+    {
+        // StateHasChanged должен вызываться в UI-потоке
+        InvokeAsync(StateHasChanged);
+    }
+
+    public string GetMessage(string nodeName) => NodeMessagesStore.GetMessage(nodeName);
+
+    public void Dispose()
+    {
+        NodeMessagesStore.PropertyChanged -= OnNodeMessageChanged;
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(Message))
+        {
+            Status = "Введите сообщение!";
+            return;
+        }
+
+        try
+        {
+            var producerService = sp.GetRequiredService<MultiTopicProducer>();
+            await producerService.ProduceToAllRequestTopicsAsync(Message);
+
+            Status = "Сообщение отправлено в топики!";
+        }
+        catch (Exception ex)
+        {
+            Status = $"Ошибка отправки: {ex.Message}";
+        }
     }
 }

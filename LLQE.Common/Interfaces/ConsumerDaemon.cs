@@ -18,21 +18,6 @@ namespace LLQE.Common.Interfaces
 
         private readonly ConsumerConfig _consumerConfig;
 
-        public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger)
-        {
-            _receiveTopic = configuration["Kafka:ReceiveTopic"];
-
-            _logger = logger;
-
-            _consumerConfig = new ConsumerConfig
-            {
-                GroupId = "test-consumer-group",
-                BootstrapServers = configuration["Kafka:BootstrapServers"],
-                AutoOffsetReset = AutoOffsetReset.Earliest,
-                EnableAutoCommit = false
-            };
-        }
-
         public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger, IProducer producer, IRequestAI requestAI)
         {
             _receiveTopic = configuration["Kafka:ReceiveTopic"];

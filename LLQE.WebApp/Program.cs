@@ -1,28 +1,29 @@
+using LLQE.Common.Entities;
+using LLQE.Common.Interfaces;
+using LLQE.Common.Services;
 using LLQE.WebApp.Components;
-using LLQE.WebApp.Daemons;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddHostedService(provider => new DeepseekTopicCallback(
-    provider.GetRequiredService<IConfiguration>(),
-    provider.GetRequiredService<ILogger<DeepseekTopicCallback>>()));
+builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
+
+builder.Services.AddSingleton<NodeMessagesStore>();
+builder.Services.AddSingleton<MultiTopicProducer>();
+builder.Services.AddHostedService<MultiTopicConsumer>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 
 app.UseAntiforgery();
 
