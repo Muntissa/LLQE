@@ -9,18 +9,39 @@ namespace LLQE.Common.Interfaces
     {
         public readonly ILogger<ConsumerDaemon> _logger;
         public readonly IRequestAI _requestAI;
+        public readonly IProducer _producer;
         public readonly string _model;
 
-        private readonly string _topicName;
+        private readonly string _receiveTopic;
+        protected readonly string _callbackTopic;
         private readonly string _nodeName;
+
         private readonly ConsumerConfig _consumerConfig;
 
-        public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger, IRequestAI requestAI)
+        public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger)
         {
-            _topicName = configuration["Kafka:ReceiveTopic"];
-            _nodeName = configuration["Kafka:CallbackTopic"];
-            _model = configuration["ApiSettings:Model"];
+            _receiveTopic = configuration["Kafka:ReceiveTopic"];
+
             _logger = logger;
+
+            _consumerConfig = new ConsumerConfig
+            {
+                GroupId = "test-consumer-group",
+                BootstrapServers = configuration["Kafka:BootstrapServers"],
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                EnableAutoCommit = false
+            };
+        }
+
+        public ConsumerDaemon(IConfiguration configuration, ILogger<ConsumerDaemon> logger, IProducer producer, IRequestAI requestAI)
+        {
+            _receiveTopic = configuration["Kafka:ReceiveTopic"];
+            _callbackTopic = configuration["Kafka:CallbackTopic"];
+            _nodeName = configuration["ApiSettings:NodeName"];
+            _model = configuration["ApiSettings:Model"];
+
+            _logger = logger;
+            _producer = producer;
             _requestAI = requestAI;
 
             _consumerConfig = new ConsumerConfig
@@ -30,7 +51,6 @@ namespace LLQE.Common.Interfaces
                 AutoOffsetReset = AutoOffsetReset.Earliest,
                 EnableAutoCommit = false
             };
-            _requestAI = requestAI;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,7 +61,7 @@ namespace LLQE.Common.Interfaces
             {
                 using (var consumer = new ConsumerBuilder<Ignore, string>(_consumerConfig).Build())
                 {
-                    consumer.Subscribe(_topicName);
+                    consumer.Subscribe(_receiveTopic);
 
                     try
                     {
@@ -50,7 +70,7 @@ namespace LLQE.Common.Interfaces
                             try
                             {
                                 var consumeResult = consumer.Consume(stoppingToken);
-                                _logger.LogInformation($"Получено сообщение: '{consumeResult.Message.Value}' на топике {consumeResult.Topic}, partition {consumeResult.Partition}, offset {consumeResult.Offset}");
+                                _logger.LogInformation($"Получено сообщение на топике {consumeResult.Topic}, offset {consumeResult.Offset}");
 
                                 HandleMessage(consumeResult.Message.Value, stoppingToken);
 
@@ -71,7 +91,19 @@ namespace LLQE.Common.Interfaces
             }, stoppingToken);
         }
 
-        public virtual async Task HandleMessage(string message, CancellationToken cancellationToken) =>  _logger.LogInformation($"Обработка сообщения: {message}");
-        
+        public virtual async Task HandleMessage(string message, CancellationToken cancellationToken)
+        {
+            var words = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var shortMessage = string.Join(' ', words.Take(8));
+
+            if (words.Length > 8)
+                shortMessage += "...";
+
+            _logger.LogInformation($"Обработка сообщения: {shortMessage}");
+
+            var response = await _requestAI.SendRequestAsync(_model, message, cancellationToken);
+
+            _producer.ProduceAsync(_callbackTopic, response);
+        }
     }
 }

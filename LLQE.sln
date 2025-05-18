@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLQE.Common", "LLQE.Common\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLQE.DeepseekNode", "LLQE.DeepseekNode\LLQE.DeepseekNode.csproj", "{D7BCD07E-8186-4CD5-A2F9-AA1C17FBF92F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LLQE.WebApp", "LLQE.WebApp\LLQE.WebApp.csproj", "{BDB35D51-0DCD-48D5-B02D-667F55C13398}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{D7BCD07E-8186-4CD5-A2F9-AA1C17FBF92F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D7BCD07E-8186-4CD5-A2F9-AA1C17FBF92F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D7BCD07E-8186-4CD5-A2F9-AA1C17FBF92F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDB35D51-0DCD-48D5-B02D-667F55C13398}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDB35D51-0DCD-48D5-B02D-667F55C13398}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDB35D51-0DCD-48D5-B02D-667F55C13398}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDB35D51-0DCD-48D5-B02D-667F55C13398}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -23,7 +23,7 @@ namespace LLQE.Common.Services
             try
             {
                 var deliveryResult = await _producer.ProduceAsync(topic, new Message<Null, string> { Value = message }, cancellationToken);
-                _logger.LogInformation($"Сообщение доставлено в '{deliveryResult.TopicPartitionOffset}'");
+                _logger.LogInformation($"Сообщение доставлено в '{deliveryResult.Topic} с порядком @{deliveryResult.Offset}'");
             }
             catch (ProduceException<Null, string> e)
             {
