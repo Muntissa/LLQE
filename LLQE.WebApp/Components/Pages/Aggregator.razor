@@ -3,50 +3,152 @@
 @using LLQE.Common.Interfaces
 @using System.ComponentModel
 @using Microsoft.Extensions.Options
-
-@rendermode InteractiveServer
-
 @inject IServiceProvider sp
 @inject LLQE.Common.Services.NodeMessagesStore NodeMessagesStore
 @inject IOptions<KafkaSettings> KafkaOptions
+@inject IJSRuntime JS
+
+@rendermode InteractiveServer
+
+<style>
+    .aggregator-root {
+        max-width: 900px;
+    }
+
+    .auto-expand {
+        overflow-y: hidden;
+        resize: vertical;
+        min-height: 80px;
+        max-height: 400px;
+    }
+
+    .response-card {
+        transition: box-shadow 0.2s;
+        min-height: 190px;
+    }
+
+        .response-card:hover {
+            box-shadow: 0 0 0 3px #dbeafe;
+        }
+
+    .btn-action {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 2;
+        background: #f3f4f6;
+        color: #222;
+        border: 1px solid #ddd;
+        opacity: 0.95;
+    }
+
+        .btn-action:disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+    .response-textarea {
+        background: #f7fafc;
+        border: none;
+        resize: vertical;
+        min-height: 100px;
+        max-height: 400px;
+        font-size: 1rem;
+    }
+</style>
+
+<script>
+    window.autoExpand = function (textAreaRef) {
+        if (!textAreaRef) return;
+        textAreaRef.style.height = 'auto';
+        textAreaRef.style.height = textAreaRef.scrollHeight + 'px';
+    }
+</script>
 
 <PageTitle>Агрегатор нейросетей</PageTitle>
 
-<h3>Отправить сообщение в Kafka</h3>
-
-<input @bind="Message" placeholder="Введите сообщение" class="form-control" />
-<button @onclick="SendMessage" class="btn btn-primary mt-2">Отправить</button>
-
-@if (Status != null)
-{
-    <div class="alert alert-info mt-2">@Status</div>
-}
-<h3>Ответы от узлов</h3>
-
-@foreach (var node in _kafkaSettings.NodeResponseTopics)
-{
-    <div>
-        <p><b>@node.Value:</b></p>
-        <textarea readonly class="form-control" rows="4">@GetMessage(node.Value)</textarea>
+<div class="container mt-4 aggregator-root">
+    <div class="card mb-4 p-4 shadow-sm">
+        <h3 class="mb-3">Отправить запрос</h3>
+        <div class="mb-3">
+            <label class="form-label"><b>Название запроса</b></label>
+            <input @bind="RequestTitle" class="form-control" placeholder="Введите название запроса" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label"><b>Текст запроса</b></label>
+            <textarea @bind="Message"
+                      @ref="MessageInputRef"
+                      @oninput="OnMessageInput"
+                      class="form-control auto-expand"
+                      rows="3"
+                      placeholder="Введите сообщение"></textarea>
+        </div>
+        <button @onclick="SendMessage"
+                class="btn btn-primary"
+                disabled="@string.IsNullOrWhiteSpace(Message)">
+            Отправить
+        </button>
+        @if (Status != null)
+        {
+            <div class="alert alert-info mt-3">@Status</div>
+        }
     </div>
-}
+
+    <h3 class="mb-3">Ответы от нейросетей</h3>
+    <div class="row gy-4">
+        @foreach (var node in _kafkaSettings.NodeResponseTopics)
+        {
+            var nodeName = node.Value;
+            var message = GetMessage(nodeName);
+            var actionDone = ActionDoneFor.ContainsKey(nodeName) && ActionDoneFor[nodeName];
+
+            <div class="col-12 col-md-6">
+                <div class="response-card card shadow-sm position-relative"
+                     @onmouseover="@(() => HoveredNode = nodeName)"
+                     @onmouseout="@(() => HoveredNode = null)">
+                    @if (HoveredNode == nodeName
+                   && !string.IsNullOrWhiteSpace(message)
+                   && !actionDone)
+                    {
+                        <button class="btn btn-sm btn-action"
+                                @onclick="() => OnNodeAction(nodeName)">
+                            <i class="bi bi-lightning-charge"></i> Действие
+                        </button>
+                    }
+                    <div class="card-header bg-light fw-bold">@nodeName</div>
+                    <div class="card-body p-3">
+                        <textarea readonly class="form-control response-textarea"
+                                  rows="4">@message</textarea>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
 
 @code {
     private string Message { get; set; }
     private string Status { get; set; }
     private KafkaSettings _kafkaSettings;
+    private string RequestTitle { get; set; }
+    private ElementReference MessageInputRef;
+    private string HoveredNode;
 
-    private IEnumerable<string> NodeNames;
+    // key: nodeName, value: true если действие уже было сделано для текущего ответа
+    private Dictionary<string, bool> ActionDoneFor = new();
+
     protected override void OnInitialized()
     {
         _kafkaSettings = KafkaOptions.Value;
-
         NodeMessagesStore.PropertyChanged += OnNodeMessageChanged;
     }
 
     private void OnNodeMessageChanged(object sender, PropertyChangedEventArgs e)
     {
-        // StateHasChanged должен вызываться в UI-потоке
+        // Когда приходит новый ответ - сбрасываем ActionDoneFor[nodeName] в false
+        if (!string.IsNullOrEmpty(e.PropertyName))
+            ActionDoneFor[e.PropertyName] = false;
+
         InvokeAsync(StateHasChanged);
     }
 
@@ -62,6 +164,7 @@
         if (string.IsNullOrWhiteSpace(Message))
         {
             Status = "Введите сообщение!";
+            await HideStatusAfterDelay();
             return;
         }
 
@@ -69,12 +172,34 @@
         {
             var producerService = sp.GetRequiredService<MultiTopicProducer>();
             await producerService.ProduceToAllRequestTopicsAsync(Message);
-
             Status = "Сообщение отправлено в топики!";
+            await HideStatusAfterDelay();
         }
         catch (Exception ex)
         {
             Status = $"Ошибка отправки: {ex.Message}";
+            await HideStatusAfterDelay();
         }
+    }
+
+    private async Task OnMessageInput(ChangeEventArgs e)
+    {
+        await JS.InvokeVoidAsync("autoExpand", MessageInputRef);
+    }
+
+    // Кнопка действия для блока
+    private async Task OnNodeAction(string nodeName)
+    {
+        Status = $"Выполнено действие для: {nodeName}";
+        ActionDoneFor[nodeName] = true;
+        await HideStatusAfterDelay();
+    }
+
+    // Скрытие статуса через 3 секунды
+    private async Task HideStatusAfterDelay()
+    {
+        await Task.Delay(3000);
+        Status = null;
+        await InvokeAsync(StateHasChanged);
     }
 }
