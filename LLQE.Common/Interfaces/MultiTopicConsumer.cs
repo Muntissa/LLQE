@@ -1,5 +1,6 @@
 ﻿using Confluent.Kafka;
 using LLQE.Common.Entities;
+using LLQE.Common.Extensions;
 using LLQE.Common.Services;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -50,7 +51,7 @@ public class MultiTopicConsumer : BackgroundService
 
                         if (_kafkaSettings.NodeResponseTopics.TryGetValue(topic, out var nodeName))
                         {
-                            _logger.LogInformation($"Ответ от узла {nodeName}: {Truncate(message)}");
+                            _logger.LogInformation($"Ответ от узла {nodeName}: {message.Truncate()}");
                             HandleNodeResponse(nodeName, message);
                         }
                         else
@@ -76,11 +77,5 @@ public class MultiTopicConsumer : BackgroundService
     {
         _logger.LogInformation($"Обработка ответа от {nodeName}: {message}");
         _store.SetMessage(nodeName, message);
-    }
-
-    private static string Truncate(string text, int wordLimit = 8)
-    {
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return string.Join(' ', words.Take(wordLimit)) + (words.Length > wordLimit ? "..." : "");
     }
 }

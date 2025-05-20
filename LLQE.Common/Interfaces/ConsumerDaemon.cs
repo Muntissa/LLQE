@@ -1,4 +1,5 @@
 ﻿using Confluent.Kafka;
+using LLQE.Common.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -78,13 +79,8 @@ namespace LLQE.Common.Interfaces
 
         public virtual async Task HandleMessage(string message, CancellationToken cancellationToken)
         {
-            var words = message.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            var shortMessage = string.Join(' ', words.Take(8));
 
-            if (words.Length > 8)
-                shortMessage += "...";
-
-            _logger.LogInformation($"Обработка сообщения: {shortMessage}");
+            _logger.LogInformation($"Обработка сообщения: {message.Truncate()}");
 
             var response = await _requestAI.SendRequestAsync(_model, message, cancellationToken);
 

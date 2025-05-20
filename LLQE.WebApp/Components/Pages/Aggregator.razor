@@ -1,11 +1,16 @@
-﻿@page "/counter"
+﻿@page "/aggregator"
+@using LLQE.Common.Entities
 @using LLQE.Common.Interfaces
 @using System.ComponentModel
+@using Microsoft.Extensions.Options
+
 @rendermode InteractiveServer
+
 @inject IServiceProvider sp
 @inject LLQE.Common.Services.NodeMessagesStore NodeMessagesStore
+@inject IOptions<KafkaSettings> KafkaOptions
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>Агрегатор нейросетей</PageTitle>
 
 <h3>Отправить сообщение в Kafka</h3>
 
@@ -18,21 +23,24 @@
 }
 <h3>Ответы от узлов</h3>
 
-@foreach (var node in NodeNames)
+@foreach (var node in _kafkaSettings.NodeResponseTopics)
 {
     <div>
-        <p><b>@node:</b></p>
-        <textarea readonly class="form-control" rows="4">@GetMessage(node)</textarea>
+        <p><b>@node.Value:</b></p>
+        <textarea readonly class="form-control" rows="4">@GetMessage(node.Value)</textarea>
     </div>
 }
 
 @code {
     private string Message { get; set; }
     private string Status { get; set; }
+    private KafkaSettings _kafkaSettings;
 
-    private string[] NodeNames = new[] { "DeepseekNode", "AnotherNode" };
+    private IEnumerable<string> NodeNames;
     protected override void OnInitialized()
     {
+        _kafkaSettings = KafkaOptions.Value;
+
         NodeMessagesStore.PropertyChanged += OnNodeMessageChanged;
     }
 
