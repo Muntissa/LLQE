@@ -1,19 +1,19 @@
+using LLQE.ChatgptNode.Daemons;
 using LLQE.Common.Interfaces;
 using LLQE.Common.Services;
-using LLQE.DeepseekNode.Daemons;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.WebHost.UseUrls("http://localhost:5001");
+builder.WebHost.UseUrls("http://localhost:5002");
 
 builder.Services.AddScoped<ITopicInitializer, TopicInitializer>();
 
 builder.Services.AddSingleton<IProducer, ProducerService>();
 builder.Services.AddHttpClient<IRequestAI, RequestAIService>();
 
-builder.Services.AddHostedService(provider => new DeepseekTopicConsumer(
+builder.Services.AddHostedService(provider => new ChathptTopicConsumer(
     provider.GetRequiredService<IConfiguration>(),
-    provider.GetRequiredService<ILogger<DeepseekTopicConsumer>>(), 
+    provider.GetRequiredService<ILogger<ChathptTopicConsumer>>(),
     provider.GetRequiredService<IProducer>(),
     provider.GetRequiredService<IRequestAI>()));
 
@@ -27,3 +27,4 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+

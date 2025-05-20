@@ -75,7 +75,7 @@ public class MultiTopicConsumer : BackgroundService
 
     public void HandleNodeResponse(string nodeName, string message)
     {
-        _logger.LogInformation($"Обработка ответа от {nodeName}: {message}");
+        _logger.LogInformation($"Обработка ответа от {nodeName}: {message.Truncate()}");
         _store.SetMessage(nodeName, message);
     }
 }
