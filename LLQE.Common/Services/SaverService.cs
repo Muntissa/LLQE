@@ -1,6 +1,5 @@
 ﻿using LLQE.Common.Interfaces;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Options;
 
 namespace LLQE.Common.Services
 {
@@ -13,11 +12,40 @@ namespace LLQE.Common.Services
             _fileStorage = configuration["FileStorage"];
         }
 
-        public bool SaveResoponse(string responseName, string responeMessage)
+        public bool SaveResoponse(string folderName, string fileName, string responseMessage)
         {
-            
+            try
+            {
+                fileName = fileName + ".txt";
 
-            return true;
+                var directoryPath = Path.Combine(_fileStorage, folderName);
+
+                if (!Directory.Exists(directoryPath))
+                {
+                    Directory.CreateDirectory(directoryPath);
+                }
+
+                var filePath = Path.Combine(directoryPath, fileName);
+
+                if (File.Exists(filePath))
+                {
+                    var fileNameWithoutExt = Path.GetFileNameWithoutExtension(fileName);
+                    var extension = Path.GetExtension(fileName);
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    var newFileName = $"{fileNameWithoutExt}_{timestamp}{extension}";
+
+                    filePath = Path.Combine(directoryPath, newFileName);
+                }
+
+                File.WriteAllText(filePath, responseMessage);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
+
     }
 }

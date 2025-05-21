@@ -13,6 +13,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.Configure<KafkaSettings>(builder.Configuration.GetSection("Kafka"));
 
+builder.Services.AddSingleton<ISaver, SaverService>();
+builder.Services.AddSingleton<FileStorageService>();
+
 builder.Services.AddSingleton<NodeMessagesStore>();
 builder.Services.AddSingleton<MultiTopicProducer>();
 builder.Services.AddHostedService<MultiTopicConsumer>();
