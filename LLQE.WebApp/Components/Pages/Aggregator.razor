@@ -172,6 +172,11 @@
             return;
         }
 
+        foreach (var nodeKey in _kafkaSettings.NodeResponseTopics.Values)
+        {
+            NodeMessagesStore.SetMessage(nodeKey, string.Empty); // Предполагается, что SetMessage есть
+        }
+
         try
         {
             var producerService = sp.GetRequiredService<MultiTopicProducer>();
