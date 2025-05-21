@@ -111,7 +111,11 @@
                    && !actionDone)
                     {
                         <button class="btn btn-sm btn-action"
-                                @onclick="() => OnNodeAction(nodeName)">
+                                @onclick="() => OnNodeAction(RequestTitle, message, nodeName)"
+                                disabled="@(
+                                        string.IsNullOrWhiteSpace(RequestTitle)
+                                        || string.IsNullOrWhiteSpace(message)
+                                    )">
                             <i class="bi bi-lightning-charge"></i> Действие
                         </button>
                     }
@@ -187,8 +191,7 @@
         await JS.InvokeVoidAsync("autoExpand", MessageInputRef);
     }
 
-    // Кнопка действия для блока
-    private async Task OnNodeAction(string nodeName)
+    private async Task OnNodeAction(string requestTitle, string message, string nodeName)
     {
         Status = $"Выполнено действие для: {nodeName}";
         ActionDoneFor[nodeName] = true;
