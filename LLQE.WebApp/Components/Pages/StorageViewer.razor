@@ -1,0 +1,157 @@
+﻿@page "/storage"
+@inject FileStorageService StorageService
+
+@using System.IO
+@using LLQE.Common.Services
+
+@rendermode InteractiveServer
+
+<PageTitle>File Storage Viewer</PageTitle>
+
+<h1 class="mb-4">File Storage Viewer</h1>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
+@if (currentFolder == null)
+{
+    <h4>Папки</h4>
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var folder in folders)
+        {
+            <div class="col">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">@folder</h5>
+                        <div class="mt-auto">
+                            <button class="btn btn-primary btn-sm me-2" @onclick="() => OpenFolder(folder)">
+                                Открыть
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteFolder(folder)">
+                                <i class="bi bi-trash"></i> Удалить
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <button class="btn btn-link mb-3" @onclick="BackToRoot"><i class="bi bi-arrow-left"></i> Назад</button>
+    <h4>Папка: <span class="text-primary">@currentFolder</span></h4>
+    @if (!files.Any())
+    {
+        <p><em>В этой папке нет файлов.</em></p>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var file in files)
+            {
+                <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-file-earmark-text"></i>
+                        @file
+                    </span>
+                    <span>
+                        <button class="btn btn-success btn-sm me-2" @onclick="() => OpenFile(file)">
+                            Открыть
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteFile(file)">
+                            <i class="bi bi-trash"></i> Удалить
+                        </button>
+                    </span>
+                </div>
+            }
+        </div>
+    }
+}
+
+
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@currentFile</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body" style="white-space: pre-wrap; font-family: monospace;">
+                    @fileContent
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    List<string> folders = new();
+    List<string> files = new();
+    string? currentFolder;
+    string? currentFile;
+    string? fileContent;
+    bool showModal = false;
+
+    protected override void OnInitialized()
+    {
+        LoadFolders();
+    }
+
+    void LoadFolders()
+    {
+        folders = StorageService.GetDirectories().ToList();
+        files.Clear();
+        currentFolder = null;
+        StateHasChanged();
+    }
+
+    void OpenFolder(string folder)
+    {
+        currentFolder = folder;
+        files = StorageService.GetFiles(folder).ToList();
+        StateHasChanged();
+    }
+
+    void BackToRoot()
+    {
+        LoadFolders();
+    }
+
+    void OpenFile(string file)
+    {
+        currentFile = file;
+        fileContent = StorageService.GetFileContent(currentFolder!, file);
+        showModal = true;
+        StateHasChanged();
+    }
+
+    void CloseModal()
+    {
+        showModal = false;
+        currentFile = null;
+        fileContent = null;
+    }
+
+    void DeleteFolder(string folder)
+    {
+        if (folder != null)
+        {
+            StorageService.DeleteFolder(folder);
+            LoadFolders();
+        }
+    }
+
+    void DeleteFile(string file)
+    {
+        if (file != null && currentFolder != null)
+        {
+            StorageService.DeleteFile(currentFolder, file);
+            files = StorageService.GetFiles(currentFolder).ToList();
+            StateHasChanged();
+        }
+    }
+}
